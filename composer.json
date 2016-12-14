@@ -1,0 +1,21 @@
+{
+  "name": "kaduev13/image-tools",
+  "description": "",
+  "license": "MIT",
+  "keywords": [],
+  "authors": [
+    {
+      "name": "Ivan Kalita",
+      "email": "input.txt@hotmail.com"
+    }
+  ],
+  "require": {},
+  "require-dev": {
+    "phpunit/phpunit": "4.0.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Kaduev13\\ImageTools\\": "src"
+    }
+  }
+}
