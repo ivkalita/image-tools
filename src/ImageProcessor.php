@@ -11,32 +11,151 @@ namespace Kaduev13\ImageTools;
 
 class ImageProcessor implements ImageProcessorInterface
 {
-    public function processAndStoreImageFromURL($url, $outPath)
+    /**
+     * @var int
+     */
+    protected $maxSideSize;
+
+    /**
+     * @var string
+     */
+    protected $tmpPath;
+
+    /**
+     * ImageProcessor constructor.
+     * @param int $maxSideSize
+     * @param string $tmpPath
+     */
+    public function __construct($maxSideSize = 1800, $tmpPath = __DIR__ . '/../temp/')
     {
-        // TODO: Implement processAndStoreImageFromURL() method.
+        $this->maxSideSize = $maxSideSize;
+        $this->tmpPath = $tmpPath;
     }
 
     /**
      * @param string $url
      * @param string $outPath
-     *
-     * @return bool
+     * @param int $quality
+     */
+    public function processAndStoreImageFromURL($url, $outPath, $quality = 60)
+    {
+        $tmpPath = $this->tmpPath . md5($url) . strrchr($outPath, '.');
+        $this->downloadImage($url, $tmpPath);
+        $this->processImage($tmpPath, $outPath, $quality);
+        unlink($tmpPath);
+    }
+
+    /**
+     * @param string $url
+     * @param string $outPath
      */
     public function downloadImage($url, $outPath)
     {
         $imageData = @file_get_contents($url);
         if ($imageData === false) {
-            return false;
+            throw new \RuntimeException('Unable to download image');
         }
-        if (file_put_contents($outPath, $imageData) === false) {
-            return false;
+        if (@file_put_contents($outPath, $imageData) === false) {
+            throw new \RuntimeException('Unable to save image to file');
         }
-
-        return true;
     }
 
-    public function processImage($inPath, $outPath)
+    /**
+     * @param string $inPath
+     * @param string $outPath
+     * @param int $quality
+     */
+    public function processImage($inPath, $outPath, $quality = 60)
     {
-        // TODO: Implement processImage() method.
+        $img = $this->imageFromFile($inPath);
+        if ($img === false) {
+            throw new \RuntimeException('Unable to create image from file');
+        }
+
+        $resized = $this->resizeImage($img);
+        if ($resized === false) {
+            throw new \RuntimeException('Unable to resize image');
+        }
+
+        $this->saveImage($resized, $outPath, 60);
+        imagedestroy($resized);
+        imagedestroy($img);
+    }
+
+    private function saveImage($image, $path, $quality)
+    {
+        $extension = strrchr($path, '.');
+        $extension = strtolower($extension);
+
+        switch ($extension) {
+            case '.jpg':
+            case '.jpeg':
+                if (imagetypes() & IMG_JPG) {
+                    imagejpeg($image, $path, $quality);
+                }
+                break;
+            case '.gif':
+                if (imagetypes() & IMG_GIF) {
+                    imagegif($image, $path);
+                }
+                break;
+            case '.png':
+                $scaleQuality = round(($quality / 100) * 9);
+                $invertScaleQuality = 9 - $scaleQuality;
+                if (imagetypes() & IMG_PNG) {
+                    imagepng($image, $path, $invertScaleQuality);
+                }
+                break;
+            default:
+                throw new \RuntimeException('Unable to save image to file');
+        }
+    }
+
+    private function imageFromFile($path)
+    {
+        $imageExtension = strtolower(strrchr($path, '.'));
+        switch ($imageExtension) {
+            case '.jpg':
+            case '.jpeg':
+                $img = @imagecreatefromjpeg($path);
+                break;
+            case '.gif':
+                $img = @imagecreatefromgif($path);
+                break;
+            case '.png':
+                $img = @imagecreatefrompng($path);
+                break;
+            default:
+                $img = false;
+                break;
+        }
+
+        return $img;
+    }
+
+    /**
+     * @param $img
+     *
+     * @return resource
+     */
+    private function resizeImage($img)
+    {
+        $originalWidth = imagesx($img);
+        $originalHeight = imagesy($img);
+
+        if (min($originalHeight, $originalWidth) < $this->maxSideSize) {
+            return $img;
+        }
+        if ($originalHeight > $originalWidth) {
+            $optimalHeight = $this->maxSideSize;
+            $optimalWidth = $optimalHeight / $originalHeight * $originalWidth;
+        } else {
+            $optimalWidth = $this->maxSideSize;
+            $optimalHeight = $optimalWidth / $originalWidth * $originalHeight;
+        }
+        $resized = imagecreatetruecolor($optimalWidth, $optimalHeight);
+        imagecopyresampled($resized, $img, 0, 0, 0, 0, $optimalWidth, $optimalHeight, $originalWidth, $originalHeight);
+
+        return $resized;
     }
 }

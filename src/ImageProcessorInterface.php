@@ -16,17 +16,15 @@ interface ImageProcessorInterface
      *
      * @param string $url
      * @param string $outPath
-     * @return bool
+     * @param int $quality
      */
-    public function processAndStoreImageFromURL($url, $outPath);
+    public function processAndStoreImageFromURL($url, $outPath, $quality);
 
     /**
      * Downloads image from URL and store it in $outPath
      *
      * @param string $url
      * @param string $outPath
-     *
-     * @return bool
      */
     public function downloadImage($url, $outPath);
 
@@ -35,7 +33,7 @@ interface ImageProcessorInterface
      *
      * @param string $inPath
      * @param string $outPath
-     * @return bool
+     * @param int $quality
      */
-    public function processImage($inPath, $outPath);
+    public function processImage($inPath, $outPath, $quality);
 }
