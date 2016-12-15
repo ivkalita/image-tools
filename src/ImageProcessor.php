@@ -39,7 +39,7 @@ class ImageProcessor implements ImageProcessorInterface
      */
     public function processAndStoreImageFromURL($url, $outPath, $quality = 60)
     {
-        $tmpPath = $this->tmpPath . md5($url) . strrchr($outPath, '.');
+        $tmpPath = $this->tmpPath . md5($url) . strrchr($url, '.');
         $this->downloadImage($url, $tmpPath);
         $this->processImage($tmpPath, $outPath, $quality);
         unlink($tmpPath);
@@ -76,11 +76,13 @@ class ImageProcessor implements ImageProcessorInterface
         if ($resized === false) {
             throw new \RuntimeException('Unable to resize image');
         }
-        $resized = $this->fixOrientation($resized, exif_read_data($inPath));
+        $resized = $this->fixOrientation($resized, @exif_read_data($inPath));
 
         $this->saveImage($resized, $outPath, 60);
         imagedestroy($resized);
-        imagedestroy($img);
+        if ($resized !== $img) {
+            imagedestroy($img);
+        }
     }
 
     private function saveImage($image, $path, $quality)
