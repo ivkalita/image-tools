@@ -76,6 +76,7 @@ class ImageProcessor implements ImageProcessorInterface
         if ($resized === false) {
             throw new \RuntimeException('Unable to resize image');
         }
+        $resized = $this->fixOrientation($resized, exif_read_data($inPath));
 
         $this->saveImage($resized, $outPath, 60);
         imagedestroy($resized);
@@ -143,6 +144,7 @@ class ImageProcessor implements ImageProcessorInterface
         $originalWidth = imagesx($img);
         $originalHeight = imagesy($img);
 
+
         if (min($originalHeight, $originalWidth) < $this->maxSideSize) {
             return $img;
         }
@@ -153,9 +155,41 @@ class ImageProcessor implements ImageProcessorInterface
             $optimalWidth = $this->maxSideSize;
             $optimalHeight = $optimalWidth / $originalWidth * $originalHeight;
         }
+
         $resized = imagecreatetruecolor($optimalWidth, $optimalHeight);
         imagecopyresampled($resized, $img, 0, 0, 0, 0, $optimalWidth, $optimalHeight, $originalWidth, $originalHeight);
 
         return $resized;
+    }
+
+    /**
+     * @param $img
+     * @param $exif
+     *
+     * @return resource
+     */
+    private function fixOrientation($img, $exif)
+    {
+        if (!isset($exif['Orientation'])) {
+            return $img;
+        }
+        switch ($exif['Orientation']) {
+            case 3:
+                $angle = 180;
+                break;
+            case 6:
+                $angle = -90;
+                break;
+            case 8:
+                $angle = 90;
+                break;
+            default:
+                $angle = 0;
+        }
+        if ($angle !== 0) {
+            $img = imagerotate($img, $angle, 0);
+        }
+
+        return $img;
     }
 }
